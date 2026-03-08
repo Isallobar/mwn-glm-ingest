@@ -1,12 +1,15 @@
-# gunicorn.conf.py — MWN GLM Ingest Service
-# Starts the S3 poll thread inside each worker process after fork.
-# This is necessary because threads don't survive gunicorn's fork().
+"""Gunicorn config for Render deployment."""
+import multiprocessing
 
-import threading
+bind = "0.0.0.0:8801"
+workers = 1          # single worker — both poll threads share state
+threads = 2
+timeout = 120
+accesslog = "-"
+errorlog = "-"
+loglevel = "info"
 
 def post_fork(server, worker):
-    """Called in each worker process after forking from master."""
-    from app import poll_loop
-    t = threading.Thread(target=poll_loop, daemon=True)
-    t.start()
-    server.log.info(f"GLM poll thread started in worker {worker.pid}")
+    """Start the GLM + STI poll threads after gunicorn forks the worker."""
+    from app import start_threads
+    start_threads()
